@@ -35,16 +35,18 @@ $toolbar-color: #323845;
   z-index: 2;
   position: absolute;
   transition: all 0.1s ease;
-  visibility: hidden;
+  // visibility: hidden;
+  display: none;
   box-shadow: 0 1px 3px 0 #747171;
   // background-image: linear-gradient(to bottom,rgba(49,49,47,.99),#262625);
 
   // transition: top 75ms ease-out,left 75ms ease-out;
 
   &.md-editor-toolbar--isopen {
-    visibility: visible;
+    // visibility: visible;
+    display: flex;
     // transition: top 75ms ease-out,left 75ms ease-out;
-    // animation: pop-upwards 180ms forwards linear;
+    animation: pop-upwards 180ms forwards linear;
   }
 
   &.md-editor-toolbar--linkinput {
@@ -52,7 +54,7 @@ $toolbar-color: #323845;
     animation: pop-downwards 200ms forwards linear;
   }
 
-  &::after {
+  .md-editor-toolbar--arrow {
     content: "";
     position: absolute;
     bottom: -5px;
@@ -127,7 +129,7 @@ $toolbar-color: #323845;
 .md-RichEditor-controls {
   font-family: 'Helvetica', sans-serif;
   font-size: 14px;
-  display: inline-block;
+  display: flex;
   border-right: 1px solid #555;
   position: relative;
 
