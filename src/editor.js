@@ -89,6 +89,7 @@ class MediumDraftEditor extends React.Component {
     showLinkEditToolbar: PropTypes.bool,
     toolbarConfig: PropTypes.object,
     processURL: PropTypes.func,
+    maxOverhang: PropTypes.number,
   };
 
   static defaultProps = {
@@ -121,6 +122,7 @@ class MediumDraftEditor extends React.Component {
     disableToolbar: false,
     showLinkEditToolbar: true,
     toolbarConfig: {},
+    maxOverhang: 0,
   };
 
   constructor(props) {
@@ -570,6 +572,7 @@ class MediumDraftEditor extends React.Component {
               focus={this.focus}
               blockButtons={blockButtons}
               inlineButtons={inlineButtons}
+              maxOverhang={this.props.maxOverhang}
             />
           )}
           {isCursorLink && (
