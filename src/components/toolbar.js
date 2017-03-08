@@ -294,12 +294,6 @@ export const BLOCK_BUTTONS = [
     description: 'Heading 2',
   },
   {
-    label: 'H3',
-    style: 'header-three',
-    icon: 'header',
-    description: 'Heading 3',
-  },
-  {
     label: 'Q',
     style: 'blockquote',
     icon: 'quote-right',
@@ -338,11 +332,6 @@ export const INLINE_BUTTONS = [
     icon: 'underline',
     description: 'Underline',
   },
-/*  {
-    label: 'Hi',
-    style: 'HIGHLIGHT',
-    description: 'Highlight selection',
-  }, */
   {
     label: '#',
     style: HYPERLINK,
