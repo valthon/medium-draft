@@ -7,7 +7,6 @@ import {
 
 import Link, { findLinkEntities } from '../components/entities/link';
 
-
 const defaultDecorators = new CompositeDecorator([
   {
     strategy: findLinkEntities,

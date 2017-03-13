@@ -1,40 +1,24 @@
-import PropTypes from 'prop-types';
-import React from 'react';
 import { RichUtils } from 'draft-js';
 
-import StyleButton from './stylebutton';
+import { Block } from '../util/constants';
 
+import SimpleToolbar from './simpletoolbar';
 
-const BlockToolbar = (props) => {
-  if (props.buttons.length < 1) {
-    return null;
+export default class BlockToolbar extends SimpleToolbar {
+  defaultIsActive(editorState, type) {
+    const blockType = RichUtils.getCurrentBlockType(editorState);
+    return (type.style === blockType);
   }
-  const { editorState } = props;
-  const blockType = RichUtils.getCurrentBlockType(editorState);
-  return (
-    <div className="md-RichEditor-controls md-RichEditor-controls-block">
-      {props.buttons.map((type) => {
-        const iconLabel = {};
-        iconLabel.label = type.label;
-        return (
-          <StyleButton
-            {...iconLabel}
-            key={type.style}
-            active={type.style === blockType}
-            onToggle={props.onToggle}
-            style={type.style}
-            description={type.description}
-          />
-        );
-      })}
-    </div>
-  );
-};
 
-BlockToolbar.propTypes = {
-  buttons: PropTypes.array,
-  editorState: PropTypes.object.isRequired,
-  onToggle: PropTypes.func,
-};
+  defaultAction(editorState, active, type) {
+    const currentBlockType = RichUtils.getCurrentBlockType(editorState);
+    if (currentBlockType.indexOf(`${Block.ATOMIC}:`) === 0) {
+      return false;
+    }
+    return RichUtils.toggleBlockType(editorState, type.style);
+  }
 
-export default BlockToolbar;
+  divClassName() {
+    return 'md-RichEditor-controls md-RichEditor-controls-block';
+  }
+}

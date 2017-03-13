@@ -1,8 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import { HYPERLINK } from '../util/constants.js';
-
 export default class StyleButton extends React.Component {
   constructor(props) {
     super(props);
@@ -13,9 +11,6 @@ export default class StyleButton extends React.Component {
   }
 
   render() {
-    if (this.props.style === HYPERLINK) {
-      return null;
-    }
     let className = 'md-RichEditor-styleButton';
     if (this.props.active) {
       className += ' md-RichEditor-activeButton';
@@ -32,7 +27,6 @@ export default class StyleButton extends React.Component {
     );
   }
 }
-
 
 StyleButton.propTypes = {
   onToggle: PropTypes.func,

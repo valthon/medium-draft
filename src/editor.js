@@ -37,6 +37,19 @@ import {
 
 import ImageButton from './components/sides/image';
 
+const BUTTON_SHAPE = PropTypes.shape({
+  label: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.element,
+    PropTypes.object,
+  ]),
+  style: PropTypes.string.isRequired,
+  icon: PropTypes.string,
+  description: PropTypes.string,
+  isActive: PropTypes.func,
+  action: PropTypes.func,
+});
+
 /*
 A wrapper over `draft-js`'s default **Editor** component which provides
 some built-in customisations like custom blocks (todo, caption, etc) and
@@ -54,26 +67,9 @@ class MediumDraftEditor extends React.Component {
     spellCheck: PropTypes.bool,
     stringToTypeMap: PropTypes.object,
     blockRenderMap: PropTypes.object,
-    blockButtons: PropTypes.arrayOf(PropTypes.shape({
-      label: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.element,
-        PropTypes.object,
-      ]),
-      style: PropTypes.string.isRequired,
-      icon: PropTypes.string,
-      description: PropTypes.string,
-    })),
-    inlineButtons: PropTypes.arrayOf(PropTypes.shape({
-      label: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.element,
-        PropTypes.object,
-      ]),
-      style: PropTypes.string.isRequired,
-      icon: PropTypes.string,
-      description: PropTypes.string,
-    })),
+    blockButtons: PropTypes.arrayOf(BUTTON_SHAPE),
+    inlineButtons: PropTypes.arrayOf(BUTTON_SHAPE),
+    customButtons: PropTypes.arrayOf(BUTTON_SHAPE),
     placeholder: PropTypes.string,
     continuousBlocks: PropTypes.arrayOf(PropTypes.string),
     sideButtons: PropTypes.arrayOf(PropTypes.shape({
@@ -129,9 +125,9 @@ class MediumDraftEditor extends React.Component {
     super(props);
 
     this.focus = () => {
-      const scroll = document.body.scrollTop;
+      const scroll = global.document.body.scrollTop;
       this._editorNode.focus();
-      document.body.scrollTop = scroll;
+      global.document.body.scrollTop = scroll;
     };
     this.onChange = (editorState, cb) => {
       this.props.onChange(editorState, cb);
@@ -143,8 +139,6 @@ class MediumDraftEditor extends React.Component {
     this.handleKeyCommand = this.handleKeyCommand.bind(this);
     this.handleBeforeInput = this.handleBeforeInput.bind(this);
     this.handleReturn = this.handleReturn.bind(this);
-    this.toggleBlockType = this._toggleBlockType.bind(this);
-    this.toggleInlineStyle = this._toggleInlineStyle.bind(this);
     this.setLink = this.setLink.bind(this);
     this.blockRendererFn = this.props.rendererFn(this.onChange, this.getEditorState);
   }
@@ -207,12 +201,12 @@ class MediumDraftEditor extends React.Component {
   /*
   Adds a hyperlink on the selected text with some basic checks.
   */
-  setLink(url) {
-    let { editorState } = this.props;
+  setLink = (url) => this.updateEditorState(editorState => {
     const selection = editorState.getSelection();
     const content = editorState.getCurrentContent();
     let entityKey = null;
     let newUrl = url;
+    let newEditorState = editorState;
     if (this.props.processURL) {
       newUrl = this.props.processURL(url);
     } else if (url.indexOf('http') === -1) {
@@ -224,11 +218,16 @@ class MediumDraftEditor extends React.Component {
     }
     if (newUrl !== '') {
       const contentWithEntity = content.createEntity(E.LINK, 'MUTABLE', { url: newUrl });
-      editorState = EditorState.push(editorState, contentWithEntity, 'create-entity');
+      newEditorState = EditorState.push(editorState, contentWithEntity, 'create-entity');
       entityKey = contentWithEntity.getLastCreatedEntityKey();
     }
-    this.onChange(RichUtils.toggleLink(editorState, selection, entityKey), this.focus);
-  }
+    return RichUtils.toggleLink(newEditorState, selection, entityKey);
+  });
+
+  updateEditorState = (transformerOrState) =>
+    this.onChange(
+      (typeof transformerOrState === 'function') ? transformerOrState(this.props.editorState) : transformerOrState,
+      this.focus);
 
   /**
    * Override which text modifications are available according BLOCK_BUTTONS style property.
@@ -265,7 +264,7 @@ class MediumDraftEditor extends React.Component {
 
   /*
   Handles custom commands based on various key combinations. First checks
-  for some built-in commands. If found, that command's function is apllied and returns.
+  for some built-in commands. If found, that command's function is applied and returns.
   If not found, it checks whether parent component handles that command or not.
   Some of the internal commands are:
 
@@ -569,13 +568,12 @@ class MediumDraftEditor extends React.Component {
               ref={(c) => { this.toolbar = c; }}
               editorNode={this._editorNode}
               editorState={editorState}
-              toggleBlockType={this.toggleBlockType}
-              toggleInlineStyle={this.toggleInlineStyle}
+              updateEditorState={this.updateEditorState}
               editorEnabled={editorEnabled}
-              setLink={this.setLink}
               focus={this.focus}
               blockButtons={blockButtons}
               inlineButtons={inlineButtons}
+              customButtons={this.props.customButtons}
               maxOverhang={this.props.maxOverhang}
             />
           )}
