@@ -65,6 +65,7 @@ class MediumDraftEditor extends React.Component {
     handleKeyCommand: PropTypes.func,
     handleReturn: PropTypes.func,
     disableToolbar: PropTypes.bool,
+    setNote: PropTypes.func,
     maxOverhang: PropTypes.number,
   };
 
@@ -378,6 +379,7 @@ class MediumDraftEditor extends React.Component {
               toggleInlineStyle={this.toggleInlineStyle}
               editorEnabled={editorEnabled}
               setLink={this.setLink}
+              setNote={this.props.setNote}
               focus={this.focus}
               blockButtons={this.props.blockButtons}
               inlineButtons={this.props.inlineButtons}

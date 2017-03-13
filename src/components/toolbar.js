@@ -8,7 +8,14 @@ import InlineToolbar from './inlinetoolbar';
 
 import { getSelection, getSelectionRect } from '../util/index';
 import { getCurrentBlock } from '../model/index';
-import { Entity, HYPERLINK } from '../util/constants';
+import { Entity, HYPERLINK, NOTE } from '../util/constants';
+
+export const NOTE_BUTTON = {
+  label: '!',
+  style: NOTE,
+  icon: 'commenting-o',
+  description: 'Make a note',
+};
 
 export default class Toolbar extends React.Component {
 
@@ -21,6 +28,7 @@ export default class Toolbar extends React.Component {
     blockButtons: PropTypes.arrayOf(PropTypes.object),
     editorNode: PropTypes.object,
     setLink: PropTypes.func,
+    setNote: PropTypes.func,
     focus: PropTypes.func,
     maxOverhang: PropTypes.number,
   };
@@ -35,12 +43,19 @@ export default class Toolbar extends React.Component {
     this.state = {
       showURLInput: false,
       urlInputValue: '',
+      showNoteInput: false,
+      noteInputValue: '',
     };
 
-    this.onKeyDown = this.onKeyDown.bind(this);
-    this.onChange = this.onChange.bind(this);
+    this.onKeyDownUrl = this.onKeyDownUrl.bind(this);
+    this.onKeyDownNote = this.onKeyDownNote.bind(this);
+    this.onChangeUrl = this.onChangeUrl.bind(this);
+    this.onChangeNote = this.onChangeNote.bind(this);
     this.handleLinkInput = this.handleLinkInput.bind(this);
     this.hideLinkInput = this.hideLinkInput.bind(this);
+    this.onChangeNote = this.onChangeNote.bind(this);
+    this.handleNoteInput = this.handleNoteInput.bind(this);
+    this.hideNoteInput = this.hideNoteInput.bind(this);
   }
 
   componentWillReceiveProps(newProps) {
@@ -55,7 +70,6 @@ export default class Toolbar extends React.Component {
           showURLInput: false,
         });
       }
-      return;
     }
   }
 
@@ -68,7 +82,7 @@ export default class Toolbar extends React.Component {
       toolbarNode.style.cssText = '';
     }
 
-    if (!this.props.editorEnabled || this.state.showURLInput) {
+    if (!this.props.editorEnabled || this.state.showURLInput || this.state.showNoteInput) {
       return;
     }
     if (selectionState.isCollapsed()) {
@@ -116,7 +130,7 @@ export default class Toolbar extends React.Component {
     }
   }
 
-  onKeyDown(e) {
+  onKeyDownUrl(e) {
     if (e.which === 13) {
       e.preventDefault();
       e.stopPropagation();
@@ -130,9 +144,35 @@ export default class Toolbar extends React.Component {
     }
   }
 
-  onChange(e) {
+  onKeyDownNote(e) {
+    if (e.which === 13) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.props.setNote) {
+        this.props.setNote(this.state.noteInputValue, this.state.noteSubject);
+      } else {
+        // eslint-disable-next-line no-debugger,no-restricted-syntax
+        debugger;
+      }
+      this.setState({
+        showNoteInput: false,
+        noteInputValue: '',
+        noteSubject: undefined,
+      }, () => this.props.focus());
+    } else if (e.which === 27) {
+      this.hideLinkInput(e);
+    }
+  }
+
+  onChangeUrl(e) {
     this.setState({
       urlInputValue: e.target.value,
+    });
+  }
+
+  onChangeNote(e) {
+    this.setState({
+      noteInputValue: e.target.value,
     });
   }
 
@@ -195,9 +235,41 @@ export default class Toolbar extends React.Component {
     }, () => this.props.focus());
   }
 
+  handleNoteInput(e, direct = false) {
+    if (!direct) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const { editorState } = this.props;
+    const selection = editorState.getSelection();
+    if (selection.isCollapsed()) {
+      this.props.focus();
+      return;
+    }
+    const currentBlock = getCurrentBlock(editorState);
+    this.setState({
+      showNoteInput: true,
+      noteSubject: currentBlock.key,
+    }, () => {
+      setTimeout(() => {
+        this.noteinput.focus();
+      }, 0);
+    });
+  }
+
+  hideNoteInput(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.setState({
+      showNoteInput: false,
+      noteInputValue: '',
+      noteSubject: '',
+    }, () => this.props.focus());
+  }
+
   render() {
-    const { editorState, editorEnabled, inlineButtons } = this.props;
-    const { showURLInput, urlInputValue } = this.state;
+    const { editorState, editorEnabled } = this.props;
+    const { showURLInput, urlInputValue, showNoteInput, noteInputValue } = this.state;
     let isOpen = true;
     if (!editorEnabled || editorState.getSelection().isCollapsed()) {
       isOpen = false;
@@ -219,8 +291,8 @@ export default class Toolbar extends React.Component {
               ref={node => { this.urlinput = node; }}
               type="text"
               className="md-url-input"
-              onKeyDown={this.onKeyDown}
-              onChange={this.onChange}
+              onKeyDown={this.onKeyDownUrl}
+              onChange={this.onChangeUrl}
               placeholder="Press ENTER or ESC"
               value={urlInputValue}
             />
@@ -228,26 +300,45 @@ export default class Toolbar extends React.Component {
         </div>
       );
     }
-    let hasHyperLink = false;
-    let hyperlinkLabel = '#';
-    let hyperlinkDescription = 'Add a link';
-    for (let cnt = 0; cnt < inlineButtons.length; cnt++) {
-      if (inlineButtons[cnt].style === HYPERLINK) {
-        hasHyperLink = true;
-        if (inlineButtons[cnt].label) {
-          hyperlinkLabel = inlineButtons[cnt].label;
-        }
-        if (inlineButtons[cnt].description) {
-          hyperlinkDescription = inlineButtons[cnt].description;
-        }
-        break;
-      }
+    if (showNoteInput) {
+      let className = `md-editor-toolbar${(isOpen ? ' md-editor-toolbar--isopen' : '')}`;
+      className += ' md-editor-toolbar--linkinput';
+      return (
+        <div
+          className={className}
+        >
+          <div
+            className="md-RichEditor-controls md-RichEditor-show-link-input"
+            style={{ display: 'block' }}
+          >
+            <span className="md-note-input-close" onMouseDown={this.hideNoteInput}>&times;</span>
+            <input
+              ref={node => { this.noteinput = node; }}
+              type="text"
+              className="md-note-input"
+              onKeyDown={this.onKeyDownNote}
+              onChange={this.onChangeNote}
+              placeholder="Press ENTER or ESC"
+              value={noteInputValue}
+            />
+          </div>
+        </div>
+      );
     }
     return (
       <div
         className={`md-editor-toolbar${(isOpen ? ' md-editor-toolbar--isopen' : '')}`}
         ref={(node) => { this._toolbarNode = node; }}
       >
+        {this.props.inlineButtons.length > 0 ? (
+          <InlineToolbar
+            editorState={editorState}
+            onToggle={this.props.toggleInlineStyle}
+            buttons={this.props.inlineButtons}
+            handleLinkInput={this.handleLinkInput}
+          />
+        ) : null}
+        <div className="md-editor-toolbar--arrow" ref={(node) => { this._arrowNode = node; }} />
         {this.props.blockButtons.length > 0 ? (
           <BlockToolbar
             editorState={editorState}
@@ -255,26 +346,19 @@ export default class Toolbar extends React.Component {
             buttons={this.props.blockButtons}
           />
         ) : null}
-        <div className="md-editor-toolbar--arrow" ref={(node) => { this._arrowNode = node; }} />
-        {this.props.inlineButtons.length > 0 ? (
-          <InlineToolbar
-            editorState={editorState}
-            onToggle={this.props.toggleInlineStyle}
-            buttons={this.props.inlineButtons}
-          />
-        ) : null}
-        {hasHyperLink && (
+        {this.props.setNote ? (
           <div className="md-RichEditor-controls">
             <a
-              className="md-RichEditor-styleButton md-RichEditor-linkButton hint--top"
-              href="#open-link-input"
-              onClick={this.handleLinkInput}
-              aria-label={hyperlinkDescription}
+              key={NOTE_BUTTON.style}
+              className="md-RichEditor-styleButton md-RichEditor-noteButton hint--top"
+              href="#open-note-input"
+              onClick={this.handleNoteInput}
+              aria-label={NOTE_BUTTON.description}
             >
-              {hyperlinkLabel}
+              {NOTE_BUTTON.icon ? <i className={`fa fa-${NOTE_BUTTON.icon}`} /> : NOTE_BUTTON.label}
             </a>
           </div>
-        )}
+        ) : null}
       </div>
     );
   }
@@ -284,13 +368,13 @@ export const BLOCK_BUTTONS = [
   {
     label: 'H1',
     style: 'header-one',
-    icon: 'header',
+    // icon: 'header',
     description: 'Heading 1',
   },
   {
     label: 'H2',
     style: 'header-two',
-    icon: 'header',
+    // icon: 'header',
     description: 'Heading 2',
   },
   {
@@ -326,12 +410,12 @@ export const INLINE_BUTTONS = [
     icon: 'italic',
     description: 'Italic',
   },
-  {
-    label: 'U',
-    style: 'UNDERLINE',
-    icon: 'underline',
-    description: 'Underline',
-  },
+  // {
+  //   label: 'U',
+  //   style: 'UNDERLINE',
+  //   icon: 'underline',
+  //   description: 'Underline',
+  // },
   {
     label: '#',
     style: HYPERLINK,
@@ -339,3 +423,4 @@ export const INLINE_BUTTONS = [
     description: 'Add a link',
   },
 ];
+

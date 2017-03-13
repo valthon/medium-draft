@@ -15,12 +15,11 @@ const BlockToolbar = (props) => {
     <div className="md-RichEditor-controls">
       {props.buttons.map((type) => {
         const iconLabel = {};
-        iconLabel.label = type.label;
-        // if (type.icon) {
-        //   iconLabel.icon = type.icon;
-        // } else {
-        //   iconLabel.label = type.label;
-        // }
+        if (type.icon) {
+          iconLabel.icon = type.icon;
+        } else {
+          iconLabel.label = type.label;
+        }
         return (
           <StyleButton
             {...iconLabel}

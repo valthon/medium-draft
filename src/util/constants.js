@@ -41,6 +41,7 @@ export const Entity = {
 export const HYPERLINK = 'hyperlink';
 export const HANDLED = 'handled';
 export const NOT_HANDLED = 'not_handled';
+export const NOTE = 'note';
 
 export const KEY_COMMANDS = {
   addNewBlock: () => 'add-new-block',
