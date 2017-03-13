@@ -1,40 +1,24 @@
-import PropTypes from 'prop-types';
-import React from 'react';
+import { RichUtils } from 'draft-js';
 
-import StyleButton from './stylebutton';
+import { Block } from '../util/constants';
 
+import SimpleToolbar from './simpletoolbar';
 
-const InlineToolbar = (props) => {
-  if (props.buttons.length < 1) {
-    return null;
+export default class InlineToolbar extends SimpleToolbar {
+  defaultIsActive(editorState, type) {
+    const currentStyle = editorState.getCurrentInlineStyle();
+    return currentStyle.has(type.style);
   }
-  const currentStyle = props.editorState.getCurrentInlineStyle();
-  return (
-    <div className="md-RichEditor-controls md-RichEditor-controls-inline">
-      {props.buttons.map(type => {
-        const iconLabel = {};
-        iconLabel.label = type.label;
-        return (
-          <StyleButton
-            {...iconLabel}
-            key={type.style}
-            active={currentStyle.has(type.style)}
-            onToggle={props.onToggle}
-            style={type.style}
-            description={type.description}
-            onClick={type.onClick}
-          />
-        );
-      })}
-    </div>
-  );
-};
 
-InlineToolbar.propTypes = {
-  buttons: PropTypes.array,
-  editorState: PropTypes.object.isRequired,
-  onToggle: PropTypes.func,
-  onClick: PropTypes.func,
-};
+  defaultAction(editorState, active, type) {
+    const blockType = RichUtils.getCurrentBlockType(editorState);
+    if (blockType.indexOf(Block.H1.split('-')[0]) === 0) {
+      return false;
+    }
+    return RichUtils.toggleInlineStyle(editorState, type.style);
+  }
 
-export default InlineToolbar;
+  divClassName() {
+    return 'md-RichEditor-controls md-RichEditor-controls-inline';
+  }
+}

@@ -4,6 +4,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
+import {
+  EditorState,
+  RichUtils,
+} from 'draft-js';
+
+import SimpleToolbar from './simpletoolbar';
 import BlockToolbar from './blocktoolbar';
 import InlineToolbar from './inlinetoolbar';
 
@@ -11,35 +17,36 @@ import { getSelection, getSelectionRect } from '../util/index';
 import { getCurrentBlock } from '../model/index';
 import { Entity, HYPERLINK } from '../util/constants';
 
+const overlap = (a1, a2, b1, b2) => (a2 >= b1 && a1 <= b2);
+
 export default class Toolbar extends React.Component {
   static propTypes = {
     editorEnabled: PropTypes.bool,
     editorState: PropTypes.object,
-    toggleBlockType: PropTypes.func,
-    toggleInlineStyle: PropTypes.func,
+    updateEditorState: PropTypes.func,
     inlineButtons: PropTypes.arrayOf(PropTypes.object),
     blockButtons: PropTypes.arrayOf(PropTypes.object),
+    customButtons: PropTypes.arrayOf(PropTypes.object),
     editorNode: PropTypes.object,
-    setLink: PropTypes.func,
     focus: PropTypes.func,
   };
 
   static defaultProps = {
     blockButtons: BLOCK_BUTTONS,
     inlineButtons: INLINE_BUTTONS,
+    customButtons: CUSTOM_BUTTONS,
   };
 
   constructor(props) {
     super(props);
     this.state = {
-      showURLInput: false,
-      urlInputValue: '',
+      showInput: false,
+      inputValue: '',
     };
 
-    this.onKeyDown = this.onKeyDown.bind(this);
-    this.onChange = this.onChange.bind(this);
-    this.handleLinkInput = this.handleLinkInput.bind(this);
-    this.hideLinkInput = this.hideLinkInput.bind(this);
+    this.onChangeInput = this.onChangeInput.bind(this);
+    this.hideInput = this.hideInput.bind(this);
+    this.showDialog = this.showDialog.bind(this);
   }
 
   componentWillReceiveProps(newProps) {
@@ -49,13 +56,12 @@ export default class Toolbar extends React.Component {
     }
     const selectionState = editorState.getSelection();
     if (selectionState.isCollapsed()) {
-      if (this.state.showURLInput) {
+      if (this.state.showInput) {
         this.setState({
           showURLInput: false,
           urlInputValue: '',
         });
       }
-      return;
     }
   }
 
@@ -68,7 +74,7 @@ export default class Toolbar extends React.Component {
   // }
 
   componentDidUpdate() {
-    if (!this.props.editorEnabled || this.state.showURLInput) {
+    if (!this.props.editorEnabled || this.state.showInput) {
       return;
     }
     const selectionState = this.props.editorState.getSelection();
@@ -110,167 +116,143 @@ export default class Toolbar extends React.Component {
     toolbarNode.style.left = `${left}px`;
   }
 
-  onKeyDown(e) {
-    if (e.which === 13) {
-      e.preventDefault();
-      e.stopPropagation();
-      this.props.setLink(this.state.urlInputValue);
-      this.hideLinkInput();
-    } else if (e.which === 27) {
-      this.hideLinkInput();
-    }
-  }
-
-  onChange(e) {
+  onChangeInput(e) {
     this.setState({
-      urlInputValue: e.target.value,
+      inputValue: e.target.value,
     });
   }
 
-  handleLinkInput(e, direct = false) {
-    if (direct !== true) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    const { editorState } = this.props;
-    const selection = editorState.getSelection();
-    if (selection.isCollapsed()) {
-      this.props.focus();
-      return;
-    }
-    const currentBlock = getCurrentBlock(editorState);
-    let selectedEntity = '';
-    let linkFound = false;
-    currentBlock.findEntityRanges((character) => {
-      const entityKey = character.getEntity();
-      selectedEntity = entityKey;
-      return entityKey !== null && editorState.getCurrentContent().getEntity(entityKey).getType() === Entity.LINK;
-    }, (start, end) => {
-      let selStart = selection.getAnchorOffset();
-      let selEnd = selection.getFocusOffset();
-      if (selection.getIsBackward()) {
-        selStart = selection.getFocusOffset();
-        selEnd = selection.getAnchorOffset();
-      }
-      if (start === selStart && end === selEnd) {
-        linkFound = true;
-        const { url } = editorState.getCurrentContent().getEntity(selectedEntity).getData();
-        this.setState({
-          showURLInput: true,
-          urlInputValue: url,
-        }, () => {
-          setTimeout(() => {
-            this.urlinput.focus();
-            this.urlinput.select();
-          }, 0);
-        });
-      }
-    });
-    if (!linkFound) {
-      this.setState({
-        showURLInput: true,
-      }, () => {
-        setTimeout(() => {
-          this.urlinput.focus();
-        }, 0);
-      });
-    }
-  }
-
-  hideLinkInput(e = null) {
+  hideInput(e = null) {
     if (e !== null) {
       e.preventDefault();
       e.stopPropagation();
     }
     this.setState({
-      showURLInput: false,
-      urlInputValue: '',
+      showInput: false,
+      inputValue: '',
+      inputSubject: undefined,
     }, this.props.focus
     );
   }
 
-  render() {
-    const { editorState, editorEnabled, inlineButtons } = this.props;
-    const { showURLInput, urlInputValue } = this.state;
-    let isOpen = true;
-    if (!editorEnabled || editorState.getSelection().isCollapsed()) {
-      isOpen = false;
-    }
-    if (showURLInput) {
-      let className = `md-editor-toolbar${(isOpen ? ' md-editor-toolbar--isopen' : '')}`;
-      className += ' md-editor-toolbar--linkinput';
-      return (
-        <div
-          className={className}
-        >
-          <div
-            className="md-RichEditor-controls md-RichEditor-show-link-input"
-            style={{ display: 'block' }}
-          >
-            <span className="md-url-input-close" onClick={this.hideLinkInput}>&times;</span>
-            <input
-              ref={node => { this.urlinput = node; }}
-              type="text"
-              className="md-url-input"
-              onKeyDown={this.onKeyDown}
-              onChange={this.onChange}
-              placeholder="Press ENTER or ESC"
-              value={urlInputValue}
-            />
-          </div>
-        </div>
-      );
-    }
-    let hasHyperLink = false;
-    let hyperlinkLabel = '#';
-    let hyperlinkDescription = 'Add a link';
-    for (let cnt = 0; cnt < inlineButtons.length; cnt++) {
-      if (inlineButtons[cnt].style === HYPERLINK) {
-        hasHyperLink = true;
-        if (inlineButtons[cnt].label) {
-          hyperlinkLabel = inlineButtons[cnt].label;
-        }
-        if (inlineButtons[cnt].description) {
-          hyperlinkDescription = inlineButtons[cnt].description;
-        }
+  showDialog(type, initialValue) {
+    let showInput;
+    switch (typeof type.dialog) {
+      case 'function':
+        showInput = type.dialog;
         break;
-      }
+      case 'string':
+        showInput = (isOpen, value) => this.renderInputDialog(isOpen, type.action, value);
+        break;
+      default:
+        showInput = () => type.dialog;
+        break;
     }
+    this.setState({
+      showInput,
+      inputValue: initialValue,
+    }, () => {
+      setTimeout(() => {
+        this.input.focus();
+        this.input.select();
+      }, 0);
+    });
+  }
+
+  generateOnKeyDown = (action) => (e) => {
+    if (e.which === 13) {
+      e.preventDefault();
+      e.stopPropagation();
+      const newState = action(this.props.editorState, this.state.inputValue);
+      if (newState && newState !== this.props.editorState) {
+        this.props.updateEditorState(newState);
+      }
+      this.hideInput();
+    } else if (e.which === 27) {
+      this.hideInput();
+    }
+  };
+
+  renderInputDialog(isOpen, action, value) {
+    const className = `md-editor-toolbar${(isOpen ? ' md-editor-toolbar--isopen' : '')} md-editor-toolbar--linkinput`;
+    const onKeyDown = this.generateOnKeyDown(action);
+    return (
+      <div
+        className={className}
+      >
+        <div
+          className="md-RichEditor-controls md-RichEditor-show-link-input"
+          style={{ display: 'block' }}
+        >
+          <span className="md-url-input-close" onMouseDown={this.hideInput}>&times;</span>
+          <input
+            ref={node => { this.input = node; }}
+            type="text"
+            className="md-url-input"
+            onKeyDown={onKeyDown}
+            onChange={this.onChangeInput}
+            placeholder="Press ENTER or ESC"
+            value={value || ''}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  render() {
+    const { editorState, editorEnabled } = this.props;
+    const { showInput, inputValue } = this.state;
+    const isOpen = editorEnabled && !editorState.getSelection().isCollapsed();
+
+    if (showInput) {
+      return showInput(isOpen, inputValue);
+    }
+
     return (
       <div
         className={`md-editor-toolbar${(isOpen ? ' md-editor-toolbar--isopen' : '')}`}
       >
-        {this.props.blockButtons.length > 0 ? (
-          <BlockToolbar
-            editorState={editorState}
-            onToggle={this.props.toggleBlockType}
-            buttons={this.props.blockButtons}
-          />
-        ) : null}
         {this.props.inlineButtons.length > 0 ? (
           <InlineToolbar
             editorState={editorState}
-            onToggle={this.props.toggleInlineStyle}
             buttons={this.props.inlineButtons}
+            showDialog={this.showDialog}
+            updateEditorState={this.props.updateEditorState}
           />
         ) : null}
-        {hasHyperLink && (
-          <div className="md-RichEditor-controls">
-            <span
-              className="md-RichEditor-styleButton md-RichEditor-linkButton hint--top"
-              onClick={this.handleLinkInput}
-              aria-label={hyperlinkDescription}
-            >
-              {hyperlinkLabel}
-            </span>
-          </div>
-        )}
+        <div className="md-editor-toolbar--arrow" ref={(node) => { this._arrowNode = node; }} />
+        {this.props.blockButtons.length > 0 ? (
+          <BlockToolbar
+            editorState={editorState}
+            buttons={this.props.blockButtons}
+            showDialog={this.showDialog}
+            updateEditorState={this.props.updateEditorState}
+          />
+        ) : null}
+        <SimpleToolbar
+          editorState={editorState}
+          buttons={this.props.customButtons}
+          showDialog={this.showDialog}
+          updateEditorState={this.props.updateEditorState}
+        />
       </div>
     );
   }
 }
 
 export const BLOCK_BUTTONS = [
+  {
+    label: 'H1',
+    style: 'header-one',
+    // icon: 'header',
+    description: 'Heading 1',
+  },
+  {
+    label: 'H2',
+    style: 'header-two',
+    // icon: 'header',
+    description: 'Heading 2',
+  },
   {
     label: 'H3',
     style: 'header-three',
@@ -362,5 +344,54 @@ export const INLINE_BUTTONS = [
     style: HYPERLINK,
     icon: 'link',
     description: 'Add a link',
+    isActive: (editorState) => {
+      const selection = editorState.getSelection();
+      if (selection.isCollapsed()) {
+        return undefined;
+      }
+      const currentBlock = getCurrentBlock(editorState);
+      let selectedEntity = '';
+      let selStart = selection.getAnchorOffset();
+      let selEnd = selection.getFocusOffset();
+      if (selection.getIsBackward()) {
+        selStart = selection.getFocusOffset();
+        selEnd = selection.getAnchorOffset();
+      }
+      let linkFound = false;
+      currentBlock.findEntityRanges((character) => {
+        const entityKey = character.getEntity();
+        selectedEntity = entityKey;
+        return entityKey !== null && editorState.getCurrentContent().getEntity(entityKey).getType() === Entity.LINK;
+      }, (start, end) => {
+        if (overlap(start, end, selStart, selEnd)) {
+          linkFound = editorState.getCurrentContent().getEntity(selectedEntity).getData();
+        }
+      });
+      return linkFound.url;
+    },
+    dialog: 'url',
+    action: (editorState, dialogValue) => {
+      const url = dialogValue; // TODO improve this...
+      const selection = editorState.getSelection();
+      const content = editorState.getCurrentContent();
+      let entityKey = null;
+      let newUrl = url;
+      let newEditorState = editorState;
+      if (url !== '') {
+        if (url.indexOf('http') === -1) {
+          if (url.indexOf('@') >= 0) {
+            newUrl = `mailto:${newUrl}`;
+          } else {
+            newUrl = `http://${newUrl}`;
+          }
+        }
+        const contentWithEntity = content.createEntity(Entity.LINK, 'MUTABLE', { url: newUrl });
+        newEditorState = EditorState.push(editorState, contentWithEntity, 'create-entity');
+        entityKey = contentWithEntity.getLastCreatedEntityKey();
+      }
+      return RichUtils.toggleLink(newEditorState, selection, entityKey);
+    },
   },
 ];
+
+export const CUSTOM_BUTTONS = [];
