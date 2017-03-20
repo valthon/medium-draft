@@ -348,15 +348,14 @@ export default class Toolbar extends React.Component {
         ) : null}
         {this.props.setNote ? (
           <div className="md-RichEditor-controls">
-            <a
+            <span
               key={NOTE_BUTTON.style}
               className="md-RichEditor-styleButton md-RichEditor-noteButton hint--top"
-              href="#open-note-input"
               onClick={this.handleNoteInput}
               aria-label={NOTE_BUTTON.description}
             >
               {NOTE_BUTTON.icon ? <i className={`fa fa-${NOTE_BUTTON.icon}`} /> : NOTE_BUTTON.label}
-            </a>
+            </span>
           </div>
         ) : null}
       </div>
