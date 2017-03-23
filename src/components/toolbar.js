@@ -87,8 +87,7 @@ export default class Toolbar extends React.Component {
     // eslint-disable-next-line react/no-find-dom-node
     const parent = ReactDOM.findDOMNode(this.props.editorNode);
     const parentBoundary = parent.getBoundingClientRect();
-    // eslint-disable-next-line
-    console.log(parentBoundary);
+
     /*
     * Main logic for setting the toolbar position.
     */
@@ -345,14 +344,3 @@ export const INLINE_BUTTONS = [
     description: 'Add a link',
   },
 ];
-  // {
-  //   label: 'S',
-  //   style: 'STRIKETHROUGH',
-  //   icon: 'strikethrough',
-  //   description: 'Strikethrough',
-  // },
-  // {
-  //   label: 'Code',
-  //   style: 'CODE',
-  //   description: 'Inline Code',
-  // },
