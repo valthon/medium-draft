@@ -85,6 +85,7 @@ class MediumDraftEditor extends React.Component {
     handleReturn: PropTypes.func,
     disableToolbar: PropTypes.bool,
     showLinkEditToolbar: PropTypes.bool,
+    maxOverhang: PropTypes.number,
   };
 
   static defaultProps = {
@@ -116,12 +117,17 @@ class MediumDraftEditor extends React.Component {
     ],
     disableToolbar: false,
     showLinkEditToolbar: true,
+    maxOverhang: 0,
   };
 
   constructor(props) {
     super(props);
 
-    this.focus = () => this._editorNode.focus();
+    this.focus = () => {
+      const scroll = document.body.scrollTop;
+      this._editorNode.focus();
+      document.body.scrollTop = scroll;
+    };
     this.onChange = (editorState, cb) => {
       this.props.onChange(editorState, cb);
     };
@@ -504,6 +510,7 @@ class MediumDraftEditor extends React.Component {
               focus={this.focus}
               blockButtons={this.props.blockButtons}
               inlineButtons={this.props.inlineButtons}
+              maxOverhang={this.props.maxOverhang}
             />
           )}
           {isCursorLink && (

@@ -23,6 +23,7 @@ export default class Toolbar extends React.Component {
     editorNode: PropTypes.object,
     setLink: PropTypes.func,
     focus: PropTypes.func,
+    maxOverhang: PropTypes.number,
   };
 
   static defaultProps = {
@@ -69,22 +70,27 @@ export default class Toolbar extends React.Component {
   // }
 
   componentDidUpdate() {
+    // eslint-disable-next-line react/no-find-dom-node
+    const toolbarNode = this._toolbarNode;
+    const selectionState = this.props.editorState.getSelection();
+
+    if (selectionState.isCollapsed()) {
+      toolbarNode.style.cssText = '';
+    }
+
     if (!this.props.editorEnabled || this.state.showURLInput) {
       return;
     }
-    const selectionState = this.props.editorState.getSelection();
     if (selectionState.isCollapsed()) {
       return;
     }
+    const maxOverhang = this.props.maxOverhang;
     // eslint-disable-next-line no-undef
     const nativeSelection = getSelection(window);
     if (!nativeSelection.rangeCount) {
       return;
     }
     const selectionBoundary = getSelectionRect(nativeSelection);
-
-    // eslint-disable-next-line react/no-find-dom-node
-    const toolbarNode = ReactDOM.findDOMNode(this);
     const toolbarBoundary = toolbarNode.getBoundingClientRect();
 
     // eslint-disable-next-line react/no-find-dom-node
@@ -94,25 +100,29 @@ export default class Toolbar extends React.Component {
     /*
     * Main logic for setting the toolbar position.
     */
+
     toolbarNode.style.top =
       `${(selectionBoundary.top - parentBoundary.top - toolbarBoundary.height - 5)}px`;
-    toolbarNode.style.width = `${toolbarBoundary.width}px`;
+    // toolbarNode.style.width = `${toolbarBoundary.width}px`;
     const widthDiff = selectionBoundary.width - toolbarBoundary.width;
     if (widthDiff >= 0) {
-      toolbarNode.style.left = `${widthDiff / 2}px`;
+      toolbarNode.style.left =
+        `${(selectionBoundary.left - parentBoundary.left) + (widthDiff / 2)}px`;
     } else {
-      const left = (selectionBoundary.left - parentBoundary.left);
-      toolbarNode.style.left = `${left + (widthDiff / 2)}px`;
-      // toolbarNode.style.width = toolbarBoundary.width + 'px';
-      // if (left + toolbarBoundary.width > parentBoundary.width) {
-        // toolbarNode.style.right = '0px';
-        // toolbarNode.style.left = '';
-        // toolbarNode.style.width = toolbarBoundary.width + 'px';
-      // }
-      // else {
-      //   toolbarNode.style.left = (left + widthDiff / 2) + 'px';
-      //   toolbarNode.style.right = '';
-      // }
+      let left = (selectionBoundary.left - parentBoundary.left);
+      left += (widthDiff / 2);
+      const initialLeft = left;
+
+      if ((left + toolbarBoundary.width) > (parentBoundary.width + maxOverhang)) {
+        left = (parentBoundary.width - toolbarBoundary.width) + maxOverhang;
+      }
+      if (left < -maxOverhang) left = -maxOverhang;
+      toolbarNode.style.left = `${left}px`;
+
+      let arrowLeft = (initialLeft - left) + (toolbarBoundary.width / 2);
+      if (arrowLeft < 9) arrowLeft = 9;
+      if (arrowLeft > (toolbarBoundary.width - 9)) arrowLeft = toolbarBoundary.width - 9;
+      this._arrowNode.style.left = `${arrowLeft}px`;
     }
   }
 
@@ -202,6 +212,7 @@ export default class Toolbar extends React.Component {
     if (!editorEnabled || editorState.getSelection().isCollapsed()) {
       isOpen = false;
     }
+
     if (showURLInput) {
       let className = `md-editor-toolbar${(isOpen ? ' md-editor-toolbar--isopen' : '')}`;
       className += ' md-editor-toolbar--linkinput';
@@ -245,6 +256,7 @@ export default class Toolbar extends React.Component {
     return (
       <div
         className={`md-editor-toolbar${(isOpen ? ' md-editor-toolbar--isopen' : '')}`}
+        ref={(node) => { this._toolbarNode = node; }}
       >
         {this.props.blockButtons.length > 0 ? (
           <BlockToolbar
@@ -253,6 +265,7 @@ export default class Toolbar extends React.Component {
             buttons={this.props.blockButtons}
           />
         ) : null}
+        <div className="md-editor-toolbar--arrow" ref={(node) => { this._arrowNode = node; }} />
         {this.props.inlineButtons.length > 0 ? (
           <InlineToolbar
             editorState={editorState}
@@ -277,6 +290,18 @@ export default class Toolbar extends React.Component {
 }
 
 export const BLOCK_BUTTONS = [
+  {
+    label: 'H1',
+    style: 'header-one',
+    icon: 'header',
+    description: 'Heading 1',
+  },
+  {
+    label: 'H2',
+    style: 'header-two',
+    icon: 'header',
+    description: 'Heading 2',
+  },
   {
     label: 'H3',
     style: 'header-three',
@@ -315,11 +340,6 @@ export const BLOCK_BUTTONS = [
     icon: 'list-ol',
     description: 'Ordered List',
   },
-  {
-    label: '✓',
-    style: 'todo',
-    description: 'Todo List',
-  },
 ];
 
 export const INLINE_BUTTONS = [
@@ -341,11 +361,11 @@ export const INLINE_BUTTONS = [
     icon: 'underline',
     description: 'Underline',
   },
-  {
+/*  {
     label: 'Hi',
     style: 'HIGHLIGHT',
     description: 'Highlight selection',
-  },
+  }, */
   {
     label: (
       <svg width="20" height="15" viewBox="0 0 14 14">
@@ -370,4 +390,3 @@ export const INLINE_BUTTONS = [
     description: 'Add a link',
   },
 ];
-
