@@ -136,13 +136,17 @@ export default class Toolbar extends React.Component {
   }
 
   showDialog(type, initialValue) {
+    if (!type || !type.dialog) {
+      return;
+    }
+    const onKeyDown = this.generateOnKeyDown(type.action);
     let showInput;
     switch (typeof type.dialog) {
       case 'function':
-        showInput = type.dialog;
+        showInput = (isOpen, value) => type.dialog(isOpen, onKeyDown, this.onChangeInput, value);
         break;
       case 'string':
-        showInput = (isOpen, value) => this.renderInputDialog(isOpen, type.action, value, type.dialog);
+        showInput = (isOpen, value) => this.renderInputDialog(isOpen, onKeyDown, this.onChangeInput, value, type.dialog);
         break;
       default:
         showInput = () => type.dialog;
@@ -173,9 +177,8 @@ export default class Toolbar extends React.Component {
     }
   };
 
-  renderInputDialog(isOpen, action, value, name = 'link') {
+  renderInputDialog(isOpen, onKeyDown, onChange, value, name = 'link') {
     const className = `md-editor-toolbar${(isOpen ? ' md-editor-toolbar--isopen' : '')} md-editor-toolbar--${name}input`;
-    const onKeyDown = this.generateOnKeyDown(action);
     return (
       <div
         className={className}
@@ -190,7 +193,7 @@ export default class Toolbar extends React.Component {
             type="text"
             className="md-url-input"
             onKeyDown={onKeyDown}
-            onChange={this.onChangeInput}
+            onChange={onChange}
             placeholder="Press ENTER or ESC"
             value={value || ''}
           />
