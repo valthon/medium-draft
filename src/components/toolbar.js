@@ -159,14 +159,13 @@ export default class Toolbar extends React.Component {
     let showInput;
     switch (typeof type.dialog) {
       case 'function':
-        showInput = (isOpen, value) => type.dialog(isOpen, onKeyDown, this.onChangeInput, value);
+        showInput = (isOpen, value) => type.dialog(isOpen, value, { onKeyDown, onChange: this.onChangeInput, onCancel: this.hideInput, ref: node => { this.input = node; } });
         break;
       case 'string':
-        showInput = (isOpen, value) => this.renderInputDialog(isOpen, onKeyDown, this.onChangeInput, value, type.dialog);
+        showInput = (isOpen, value) => this.renderInputDialog(isOpen, value, { onKeyDown, onChange: this.onChangeInput, onCancel: this.hideInput, ref: node => { this.input = node; }, name: type.dialog });
         break;
       default:
         showInput = () => type.dialog;
-        break;
     }
     this.setState({
       showInput,
@@ -193,7 +192,7 @@ export default class Toolbar extends React.Component {
     }
   };
 
-  renderInputDialog(isOpen, onKeyDown, onChange, value, name = 'link') {
+  renderInputDialog(isOpen, value, { onKeyDown, onChange, onCancel, ref, name = 'link' }) {
     const className = `md-editor-toolbar${(isOpen ? ' md-editor-toolbar--isopen' : '')} md-editor-toolbar--${name}input`;
     return (
       <div
@@ -203,9 +202,9 @@ export default class Toolbar extends React.Component {
           className={`md-RichEditor-controls md-RichEditor-show-${name}-input`}
           style={{ display: 'block' }}
         >
-          <span className="md-url-input-close" onMouseDown={this.hideInput}>&times;</span>
+          <span className="md-url-input-close" onMouseDown={onCancel}>&times;</span>
           <input
-            ref={node => { this.input = node; }}
+            ref={ref}
             type="text"
             className="md-url-input"
             onKeyDown={onKeyDown}
