@@ -151,17 +151,31 @@ export default class Toolbar extends React.Component {
   }
 
   showDialog(type, initialValue) {
-    if (!type || !type.dialog) {
-      return;
-    }
-    const onKeyDown = this.generateOnKeyDown(type.action);
+    const onSubmit = () => {
+      const newState = type.action(this.props.editorState, this.state.inputValue);
+      if (newState && newState !== this.props.editorState) {
+        this.props.updateEditorState(newState);
+      }
+      this.hideInput();
+    };
+    const onCancel = () => { this.hideInput(); };
+    const onKeyDown = (e) => {
+      if (e.which === 13) {
+        e.preventDefault();
+        e.stopPropagation();
+        onSubmit();
+      } else if (e.which === 27) {
+        onCancel();
+      }
+    };
+
     let showInput;
     switch (typeof type.dialog) {
       case 'function':
-        showInput = (isOpen, value) => type.dialog(isOpen, value, { onKeyDown, onChange: this.onChangeInput, onCancel: this.hideInput, ref: node => { this.input = node; } });
+        showInput = (isOpen, value) => type.dialog(isOpen, value, { onKeyDown, onChange: this.onChangeInput, onCancel, onSubmit, ref: node => { this.input = node; } });
         break;
       case 'string':
-        showInput = (isOpen, value) => this.renderInputDialog(isOpen, value, { onKeyDown, onChange: this.onChangeInput, onCancel: this.hideInput, ref: node => { this.input = node; }, name: type.dialog });
+        showInput = (isOpen, value) => this.renderInputDialog(isOpen, value, { onKeyDown, onChange: this.onChangeInput, onCancel, onSubmit, ref: node => { this.input = node; }, name: type.dialog });
         break;
       default:
         showInput = () => type.dialog;
@@ -176,20 +190,6 @@ export default class Toolbar extends React.Component {
       }, 0);
     });
   }
-
-  generateOnKeyDown = (action) => (e) => {
-    if (e.which === 13) {
-      e.preventDefault();
-      e.stopPropagation();
-      const newState = action(this.props.editorState, this.state.inputValue);
-      if (newState && newState !== this.props.editorState) {
-        this.props.updateEditorState(newState);
-      }
-      this.hideInput();
-    } else if (e.which === 27) {
-      this.hideInput();
-    }
-  };
 
   renderInputDialog(isOpen, value, { onKeyDown, onChange, onCancel, ref, name = 'link' }) {
     const className = `md-editor-toolbar${(isOpen ? ' md-editor-toolbar--isopen' : '')} md-editor-toolbar--${name}input`;
