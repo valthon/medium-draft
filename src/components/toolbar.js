@@ -74,13 +74,19 @@ export default class Toolbar extends React.Component {
   // }
 
   componentDidUpdate() {
+    const selectionState = this.props.editorState.getSelection();
     if (!this.props.editorEnabled || this.state.showInput) {
+      if (selectionState.isCollapsed() && this.state.showInput) {
+        // Go back to toolbar if we lose focus
+        this.hideInput();
+      }
       return;
     }
-    const selectionState = this.props.editorState.getSelection();
     if (selectionState.isCollapsed()) {
-      if (toolbarNode) {
-        toolbarNode.style.cssText = '';
+      // eslint-disable-next-line react/no-find-dom-node
+      const oldToolbarNode = ReactDOM.findDOMNode(this);
+      if (oldToolbarNode) {
+        oldToolbarNode.style.cssText = '';
       }
       return;
     }
