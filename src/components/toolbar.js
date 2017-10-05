@@ -75,15 +75,13 @@ export default class Toolbar extends React.Component {
   // }
 
   componentDidUpdate() {
-    // eslint-disable-next-line react/no-find-dom-node
     const toolbarNode = this._toolbarNode;
     const selectionState = this.props.editorState.getSelection();
-
-    if (selectionState.isCollapsed()) {
-      toolbarNode.style.cssText = '';
-    }
-
     if (!this.props.editorEnabled || this.state.showInput) {
+      if (selectionState.isCollapsed() && this.state.showInput) {
+        // Go back to toolbar if we lose focus
+        this.hideInput();
+      }
       return;
     }
     if (selectionState.isCollapsed()) {
