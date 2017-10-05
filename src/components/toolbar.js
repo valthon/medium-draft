@@ -81,6 +81,10 @@ export default class Toolbar extends React.Component {
     const selectionState = this.props.editorState.getSelection();
 
     if (!this.props.editorEnabled || this.state.showInput) {
+      if (selectionState.isCollapsed() && this.state.showInput) {
+        // Go back to toolbar if we lose focus
+        this.hideInput();
+      }
       return;
     }
     if (selectionState.isCollapsed()) {
