@@ -80,14 +80,13 @@ export default class Toolbar extends React.Component {
     const toolbarNode = this._toolbarNode;
     const selectionState = this.props.editorState.getSelection();
 
-    if (selectionState.isCollapsed()) {
-      toolbarNode.style.cssText = '';
-    }
-
     if (!this.props.editorEnabled || this.state.showInput) {
       return;
     }
     if (selectionState.isCollapsed()) {
+      if (toolbarNode) {
+        toolbarNode.style.cssText = '';
+      }
       return;
     }
     const maxOverhang = this.props.maxOverhang;
@@ -186,9 +185,11 @@ export default class Toolbar extends React.Component {
       inputValue: initialValue,
     }, () => {
       setTimeout(() => {
-        this.input.focus();
-        this.input.select();
-      }, 0);
+        if (this.input) {
+          this.input.focus();
+          this.input.select();
+        }
+      }, 100);
     });
   }
 
