@@ -291,6 +291,18 @@ export default class Toolbar extends React.Component {
 
 export const BLOCK_BUTTONS = [
   {
+    label: 'H1',
+    style: 'header-one',
+    icon: 'header',
+    description: 'Heading 1',
+  },
+  {
+    label: 'H2',
+    style: 'header-two',
+    icon: 'header',
+    description: 'Heading 2',
+  },
+  {
     label: 'H3',
     style: 'header-three',
     icon: 'header',
@@ -328,11 +340,6 @@ export const BLOCK_BUTTONS = [
     icon: 'list-ol',
     description: 'Ordered List',
   },
-  {
-    label: '✓',
-    style: 'todo',
-    description: 'Todo List',
-  },
 ];
 
 export const INLINE_BUTTONS = [
@@ -354,11 +361,11 @@ export const INLINE_BUTTONS = [
     icon: 'underline',
     description: 'Underline',
   },
-  {
+/*  {
     label: 'Hi',
     style: 'HIGHLIGHT',
     description: 'Highlight selection',
-  },
+  }, */
   {
     label: (
       <svg width="20" height="15" viewBox="0 0 14 14">
