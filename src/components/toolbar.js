@@ -151,6 +151,18 @@ export default class Toolbar extends React.Component {
     );
   }
 
+  currentHighlightedText() {
+    const { editorState } = this.props;
+    const selection = editorState.getSelection();
+    if (!editorState) {
+      return '';
+    }
+    const block = editorState.getCurrentContent().getBlockForKey(selection.getStartKey());
+    const endOffset = (selection.getStartKey() === selection.getEndKey()) ? selection.getEndOffset() : undefined;
+    const text = block.getText().substring(selection.getStartOffset(), endOffset);
+    return (endOffset ? text : `${text}...`);
+  }
+
   showDialog(type, initialValue) {
     const onSubmit = () => {
       const newState = type.action(this.props.editorState, this.state.inputValue);
@@ -170,13 +182,15 @@ export default class Toolbar extends React.Component {
       }
     };
 
+    const selection = this.currentHighlightedText();
+
     let showInput;
     switch (typeof type.dialog) {
       case 'function':
-        showInput = (isOpen, value) => type.dialog(isOpen, value, { onKeyDown, onChange: this.onChangeInput, onCancel, onSubmit, ref: node => { this.input = node; } });
+        showInput = (isOpen, value) => type.dialog(isOpen, value, { selection, onKeyDown, onChange: this.onChangeInput, onCancel, onSubmit, ref: node => { this.input = node; } });
         break;
       case 'string':
-        showInput = (isOpen, value) => this.renderInputDialog(isOpen, value, { onKeyDown, onChange: this.onChangeInput, onCancel, onSubmit, ref: node => { this.input = node; }, name: type.dialog });
+        showInput = (isOpen, value) => this.renderInputDialog(isOpen, value, { selection, onKeyDown, onChange: this.onChangeInput, onCancel, onSubmit, ref: node => { this.input = node; }, name: type.dialog });
         break;
       default:
         showInput = () => type.dialog;
